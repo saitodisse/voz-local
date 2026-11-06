@@ -1,0 +1,15 @@
+# Ambiente, dados privados e artefatos
+.venv/
+*.ini
+*.json
+!*.example.json
+.env*
+*.log
+*.wav
+*.mp3
+*.pt
+*.pth
+*.onnx
+*.safetensors
+__pycache__/
+.pytest_cache/
