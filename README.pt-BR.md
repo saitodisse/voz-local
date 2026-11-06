@@ -1,6 +1,6 @@
 # Voice Local Resident
 
-[Read in English](README.md) · Leitor local de texto em português brasileiro para Windows com Kokoro e F5-TTS. Selecione um texto e pressione **Ctrl + Alt + S**. A página local salva configurações separadas para cada motor.
+[Read in English](README.md) · Leitor local de texto em português brasileiro para Windows com Kokoro, F5-TTS e Edge TTS on-line. Selecione um texto e pressione **Ctrl + Alt + S**. A página local salva configurações separadas para cada motor.
 
 ## Antes de começar
 
@@ -72,9 +72,15 @@ Se escolheu outra pasta para os modelos, coloque o caminho escolhido na variáve
 
 Para parar, saia pelo ícone do AutoHotkey na bandeja e pressione Ctrl+C na janela do servidor. Fechar o navegador não encerra o servidor. Se a porta 8888 ou o atalho já estiverem em uso pelo leitor anterior, encerre-o antes de iniciar esta versão.
 
+## Edge TTS pela internet
+
+Na página de configuração, escolha **Edge TTS**, selecione Francisca, Antonio ou Thalita Multilingual, ajuste velocidade, volume e tonalidade e salve. O mesmo atalho Ctrl + Alt + S usa o motor selecionado. O Edge TTS envia o texto selecionado pela internet para a Microsoft e não usa a GPU para sintetizar a voz. A biblioteca comunitária [edge-tts](https://github.com/rany2/edge-tts) atualmente não exige chave de API, mas a disponibilidade, as vozes e as condições do serviço podem mudar. A demora depende da rede e do serviço. O FFmpeg converte o áudio para reprodução.
+
+Para atualizar uma instalação existente, execute `uv pip install --python "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -r requirements.txt` e reinicie o leitor.
+
 ## Testes e limites
 
-Com o servidor deste projeto rodando, execute `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 test_integration.py`. O teste muda as configurações temporariamente e as restaura; não use o leitor ao mesmo tempo. Ele exige os dois modelos e a GPU e não testa a reprodução física nem o atalho. Para testar em outra porta, defina `VOZLOCAL_TEST_URL` com a URL local correspondente.
+Para testar as configurações do Edge e gerar áudio real usando uma configuração temporária isolada, execute `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 test_edge.py`; são necessários internet e FFmpeg. Com o servidor deste projeto rodando, execute `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 test_integration.py`. O teste muda as configurações temporariamente e as restaura; não use o leitor ao mesmo tempo. Ele exige os dois modelos e a GPU e não testa a reprodução física nem o atalho. Para testar em outra porta, defina `VOZLOCAL_TEST_URL` com a URL local correspondente.
 
 O F5 aceita até 500 caracteres e carrega seu modelo em cada requisição. O Kokoro carrega na primeira utilização e é descarregado ao usar o F5. O servidor não tem autenticação; mantenha-o acessível somente em localhost. As configurações ficam em `leitor-config.json` dentro da pasta de dados local.
 

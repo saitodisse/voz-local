@@ -4,3 +4,4 @@ kokoro==0.9.4
 espeakng-loader
 soundfile
 numpy
+edge-tts>=7.0,<8

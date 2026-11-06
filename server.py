@@ -1,4 +1,4 @@
-import io, os, json, time, threading, subprocess
+import io, os, json, time, threading, subprocess, asyncio
 from pathlib import Path
 from typing import Literal
 BASE=Path(os.environ.get('VOZLOCAL_HOME', str(Path.home() / 'Apps' / 'VozLocal')))
@@ -26,10 +26,16 @@ class F5(BaseModel):
  target_rms: float=Field(default=0.1,ge=0.01,le=0.5)
  seed: int=Field(default=-1,ge=-1,le=2147483647)
  reference: Literal['cadu']='cadu'
+class Edge(BaseModel):
+ voice: Literal['pt-BR-FranciscaNeural','pt-BR-AntonioNeural','pt-BR-ThalitaMultilingualNeural']='pt-BR-FranciscaNeural'
+ rate: int=Field(default=0,ge=-50,le=100)
+ volume: int=Field(default=0,ge=-100,le=100)
+ pitch: int=Field(default=0,ge=-50,le=50)
 class Settings(BaseModel):
- engine: Literal['kokoro','f5']='kokoro'
+ engine: Literal['kokoro','f5','edge']='kokoro'
  kokoro: Kokoro=Kokoro()
  f5: F5=F5()
+ edge: Edge=Edge()
 class TTSRequest(BaseModel):
  text: str=Field(min_length=1,max_length=5000)
  voice: str|None=None
@@ -70,7 +76,24 @@ def tts(req:TTSRequest):
  if not req.text.strip(): raise HTTPException(422,'Texto vazio')
  with lock:
   settings=read_config(); t=time.perf_counter()
-  if settings.engine=='f5':
+  if settings.engine=='edge':
+   import edge_tts, tempfile
+   async def fetch_audio():
+    audio=bytearray()
+    communicate=edge_tts.Communicate(req.text,settings.edge.voice,rate=f'{settings.edge.rate:+d}%',volume=f'{settings.edge.volume:+d}%',pitch=f'{settings.edge.pitch:+d}Hz')
+    async for chunk in communicate.stream():
+     if chunk['type']=='audio': audio.extend(chunk['data'])
+    return bytes(audio)
+   try:
+    mp3=asyncio.run(fetch_audio())
+    if not mp3: raise RuntimeError('O serviço não retornou áudio.')
+    with tempfile.TemporaryDirectory(prefix='voz-edge-') as folder:
+     path=Path(folder)/'audio.wav'
+     converted=subprocess.run(['ffmpeg','-v','error','-i','pipe:0','-y',str(path)],input=mp3,capture_output=True,timeout=120)
+     if converted.returncode: raise RuntimeError('Falha ao converter áudio: '+converted.stderr.decode('utf-8',errors='replace')[-500:])
+     result=path.read_bytes()
+   except Exception as e: raise HTTPException(502,'Falha no Edge TTS: '+str(e)) from e
+  elif settings.engine=='f5':
    if len(req.text)>500: raise HTTPException(422,'F5 aceita até 500 caracteres nesta versão.')
    pipeline=None; torch.cuda.empty_cache()
    import tempfile

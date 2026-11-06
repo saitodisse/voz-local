@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 - 2026-11-06
+
+- Add online Edge TTS with Brazilian voices and independent rate, volume and pitch settings.
+- Explain online text transmission and test actual Edge synthesis.
+
 ## 0.1.1 - 2026-11-06
 
 - Add detailed installation and startup instructions in English and Brazilian Portuguese.

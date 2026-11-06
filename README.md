@@ -1,6 +1,6 @@
 # Voice Local Resident
 
-[Português brasileiro](README.pt-BR.md) · Local Windows text-to-speech reader for Brazilian Portuguese using Kokoro and F5-TTS. Select text and press **Ctrl+Alt+S**. Settings for each engine are saved separately in the local configuration page.
+[Português brasileiro](README.pt-BR.md) · Local Windows text-to-speech reader for Brazilian Portuguese using Kokoro, F5-TTS and online Edge TTS. Select text and press **Ctrl+Alt+S**. Settings for each engine are saved separately in the local configuration page.
 
 ## Requirements
 
@@ -68,9 +68,15 @@ $env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
 
 Leave the window open. Open http://127.0.0.1:8888/, select an engine, adjust its settings and save. In File Explorer, double-click `read_selection.ahk` to start the shortcut. Select text and press Ctrl+Alt+S. To stop, exit the AutoHotkey tray icon and press Ctrl+C in the server window. Closing the browser does not stop the server. If port 8888 or the shortcut is already used by an older reader, stop that reader first.
 
+## Edge TTS online
+
+Select **Edge TTS** on the configuration page, choose Francisca, Antonio or Thalita Multilingual, adjust rate, volume and pitch, and save. The same Ctrl+Alt+S shortcut uses the selected engine. Edge TTS sends selected text over the internet to Microsoft; it does not use the GPU for synthesis. The community-maintained [edge-tts](https://github.com/rany2/edge-tts) library currently requires no API key, but service availability, voices and terms can change. Latency depends on the network and service. FFmpeg converts the response for playback.
+
+For an existing installation, update the main environment with `uv pip install --python "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -r requirements.txt` and restart the reader.
+
 ## Tests and limitations
 
-With this project's server running, run `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 test_integration.py`. It changes configuration temporarily and restores it; avoid concurrent use. The test requires both models and a GPU and does not test playback or the hotkey. F5 is limited to 500 characters and loads its model for each request. Kokoro loads on first request and is unloaded when F5 is used. The local server has no authentication; keep it bound to localhost.
+To test Edge settings and real online synthesis in an isolated temporary configuration, run `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 test_edge.py`; it requires internet and FFmpeg. With this project's server running, run `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 test_integration.py`. It changes configuration temporarily and restores it; avoid concurrent use. The test requires both models and a GPU and does not test playback or the hotkey. F5 is limited to 500 characters and loads its model for each request. Kokoro loads on first request and is unloaded when F5 is used. The local server has no authentication; keep it bound to localhost.
 
 ## Licenses
 
