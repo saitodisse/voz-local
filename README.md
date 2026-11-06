@@ -1,35 +1,77 @@
 # Voice Local Resident
 
-A private, local Windows text-to-speech reader for Brazilian Portuguese. Select text in any app and press **Ctrl+Alt+S**. Choose Kokoro or F5-TTS and save their independent settings in the local web interface.
-
-## Features
-
-- Local-only HTTP service and configuration page on `127.0.0.1:8888`.
-- Kokoro Brazilian voices Dora, Alex and Santa, with selectable speed. The model remains loaded after its first use.
-- F5-TTS Brazilian Portuguese with separate speed, sampling, diffusion steps, guidance, crossfade, RMS and seed settings. The F5 model loads in a separate process for each request.
-- Windows tray shortcut restores the clipboard after copying the selection.
-- Configuration, models, voice samples and generated audio remain on your computer and are not part of this repository.
+[Português brasileiro](README.pt-BR.md) · Local Windows text-to-speech reader for Brazilian Portuguese using Kokoro and F5-TTS. Select text and press **Ctrl+Alt+S**. Settings for each engine are saved separately in the local configuration page.
 
 ## Requirements
 
-Windows 10/11, NVIDIA GPU with a compatible CUDA driver, Python 3.11, `uv`, FFmpeg on PATH, and AutoHotkey v2. This project was tested on an RTX 3060 Ti with 8 GB. GPU use and response time depend on other applications.
+Windows 10/11, NVIDIA GPU and compatible CUDA driver, Python 3.11, [uv](https://docs.astral.sh/uv/getting-started/installation/), [Git](https://git-scm.com/downloads), [FFmpeg](https://ffmpeg.org/download.html) on PATH, and [AutoHotkey v2](https://www.autohotkey.com/). The setup downloads several gigabytes. This project requires CUDA and was tested on an RTX 3060 Ti with 8 GB; CPU mode is not implemented.
 
-## Setup
+## Install step by step
 
-Install AutoHotkey v2 and FFmpeg, then create two isolated Python 3.11 environments at `.venv` and `.f5` inside the model directory. Install CUDA 12.4 PyTorch in both, install `requirements.txt` in `.venv`, and install `f5-tts` plus `pyarrow==19.0.1` in `.f5`. Download the model assets described below; they occupy several gigabytes. The setup uses the CC0 Cadu voice sample from the Open Home Foundation; the included transcript is machine-generated and may need correction. Existing installations can set `VOZLOCAL_HOME` to their existing model directory instead.
+Open PowerShell and run each block in order. If a command fails, correct the error before continuing.
 
-Run `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" server.py` in PowerShell, then run `read_selection.ahk` with AutoHotkey v2. Set `VOZLOCAL_HOME` to the model directory first. Open <http://127.0.0.1:8888/> to configure it. The interface is in Brazilian Portuguese. Save settings before reading. `Ctrl+Alt+S` copies the selected text, requests audio locally and plays it. F5 accepts at most 500 characters per request. The service reads the configuration on every request; the engines do not share voice or speed settings.
+**1. Download the project:**
 
-For a machine configured in this project chat, the default model directory is `C:\Users\saito\Apps\VozLocal`. To use another location, set `VOZLOCAL_HOME` before starting the service. Files include `modelos/f5-pt-br/pt-br/model_last.safetensors`, `modelos/f5-pt-br/F5TTS_Base/vocab.txt`, and `referencias/cadu.mp3`. The Kokoro and Vocos models are downloaded on first use. FFmpeg must be available to the F5 environment.
+```powershell
+git clone https://github.com/saitodisse/voz-local.git
+cd voz-local
+```
 
-## Tests
+**2. Choose the local data directory:**
 
-With the service running, `python test_integration.py` exercises configuration persistence, validation and actual audio generation with both engines. It temporarily changes settings and restores them afterward; avoid using the service while running it.
+```powershell
+$env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
+New-Item -ItemType Directory -Force -Path $env:VOZLOCAL_HOME | Out-Null
+```
+
+The service uses this folder by default. To use another folder, set `VOZLOCAL_HOME` in every PowerShell session used to start the server. Never commit its contents.
+
+**3. Install the main environment:**
+
+```powershell
+uv venv --python 3.11 "$env:VOZLOCAL_HOME\.venv"
+uv pip install --python "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+uv pip install --python "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -r requirements.txt
+& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -c "import torch; print('CUDA:', torch.cuda.is_available())"
+```
+
+CUDA must print `True`. Otherwise update/check the NVIDIA driver and PyTorch installation. The first Kokoro generation downloads its model and voice.
+
+**4. Install F5 in a separate environment:**
+
+```powershell
+uv venv --python 3.11 "$env:VOZLOCAL_HOME\.f5"
+uv pip install --python "$env:VOZLOCAL_HOME\.f5\Scripts\python.exe" f5-tts pyarrow==19.0.1 --torch-backend=cu124
+```
+
+**5. Download the F5 checkpoint, vocabulary and reference:**
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:VOZLOCAL_HOME\modelos\f5-pt-br", "$env:VOZLOCAL_HOME\referencias" | Out-Null
+& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -c "import os; from pathlib import Path; from huggingface_hub import hf_hub_download; p=Path(os.environ['VOZLOCAL_HOME'])/'modelos'/'f5-pt-br'; hf_hub_download('firstpixel/F5-TTS-pt-br','pt-br/model_last.safetensors',local_dir=p); hf_hub_download('SWivid/F5-TTS','F5TTS_Base/vocab.txt',local_dir=p)"
+Invoke-WebRequest 'https://raw.githubusercontent.com/OHF-Voice/voice-datasets/master/pt_BR/cadu/0000000001.mp3' -OutFile "$env:VOZLOCAL_HOME\referencias\cadu.mp3"
+```
+
+The F5 Vocos vocoder downloads on first use. The Cadu reference is CC0; its hard-coded transcript was generated automatically and may need correction. The page currently cannot change the reference or transcript.
+
+## Start and use
+
+For the installed project, run `start.ps1` and `stop.ps1` from PowerShell to start and stop the reader. The start script opens the configuration page and checks whether the port or another reader shortcut is already in use. The stop script targets only this project's processes. On the original user's computer, desktop shortcuts named **Iniciar Voz Local** and **Parar Voz Local** were created; other users can create equivalent shortcuts to these scripts.
+
+
+From the project folder, open a PowerShell window and run:
+
+```powershell
+$env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
+& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 server.py
+```
+
+Leave the window open. Open http://127.0.0.1:8888/, select an engine, adjust its settings and save. In File Explorer, double-click `read_selection.ahk` to start the shortcut. Select text and press Ctrl+Alt+S. To stop, exit the AutoHotkey tray icon and press Ctrl+C in the server window. Closing the browser does not stop the server. If port 8888 or the shortcut is already used by an older reader, stop that reader first.
+
+## Tests and limitations
+
+With this project's server running, run `& "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 test_integration.py`. It changes configuration temporarily and restores it; avoid concurrent use. The test requires both models and a GPU and does not test playback or the hotkey. F5 is limited to 500 characters and loads its model for each request. Kokoro loads on first request and is unloaded when F5 is used. The local server has no authentication; keep it bound to localhost.
 
 ## Licenses
 
-The project code is MIT licensed. Kokoro weights are Apache 2.0. The separately downloaded [firstpixel F5-TTS pt-BR checkpoint](https://huggingface.co/firstpixel/F5-TTS-pt-br) is CC BY-NC 4.0: model weights and output have non-commercial restrictions. Individual dependencies and voice references have their own terms. Do not assume an open-source code license overrides model licenses.
-
-## Limitations
-
-The listener starts with the active Windows session; startup registration is optional and machine-specific. It currently uses Cadu as the F5 reference. Audio playback is local. There is no network authentication, so keep the service bound to localhost. The site does not expose all training or model-loading parameters; it exposes the supported inference controls listed in the [F5 API](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/api.py) and the Kokoro voice and speed controls relevant to this reader.
+Application code: MIT. Kokoro weights: Apache 2.0. The [firstpixel F5 pt-BR checkpoint](https://huggingface.co/firstpixel/F5-TTS-pt-br) is CC BY-NC 4.0 and restricts commercial use. [Cadu reference dataset](https://github.com/OHF-Voice/voice-datasets): CC0. Dependencies, models and recordings have separate terms; source code licensing does not override those terms.
