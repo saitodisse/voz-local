@@ -1,4 +1,4 @@
-import io, os, json, time, threading, subprocess, asyncio
+import io, os, json, re, time, threading, subprocess, asyncio
 from pathlib import Path
 from typing import Literal
 BASE=Path(os.environ.get('VOZLOCAL_HOME', str(Path.home() / 'Apps' / 'VozLocal')))
@@ -6,14 +6,15 @@ os.environ['HF_HOME']=str(BASE/'cache')
 import numpy as np, soundfile as sf, torch, uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response, HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from kokoro import KPipeline
 from phonemizer.backend.espeak.wrapper import EspeakWrapper
 import espeakng_loader
 EspeakWrapper.set_library(espeakng_loader.get_library_path())
 os.environ['ESPEAK_DATA_PATH']=str(espeakng_loader.get_data_path())
 CONFIG=BASE/'leitor-config.json'
-lock=threading.RLock(); pipeline=None
+SHORTCUT_PATTERN=re.compile(r'(?P<modifiers>[!^+#]*)(?P<key>[A-Za-z0-9]|F(?:[1-9]|1[0-9]|2[0-4])|Numpad(?:[0-9]|Add|Sub|Mult|Div|Dot|Enter)|Space|Tab|Enter|Esc|Backspace|Delete|Insert|Home|End|PgUp|PgDn|Up|Down|Left|Right)',re.IGNORECASE)
+lock=threading.RLock(); shortcut_capture_lock=threading.Lock(); pipeline=None; shortcut_capture_until=0
 class Kokoro(BaseModel):
  voice: Literal['pf_dora','pm_alex','pm_santa']='pf_dora'
  speed: float=Field(default=1,ge=0.7,le=1.3)
@@ -33,9 +34,23 @@ class Edge(BaseModel):
  pitch: int=Field(default=0,ge=-50,le=50)
 class Settings(BaseModel):
  engine: Literal['kokoro','f5','edge']='kokoro'
+ shortcut: str=Field(default='^!s',max_length=40)
  kokoro: Kokoro=Kokoro()
  f5: F5=F5()
  edge: Edge=Edge()
+
+ @field_validator('shortcut')
+ @classmethod
+ def validate_shortcut(cls,value):
+  if value=='': return value
+  match=SHORTCUT_PATTERN.fullmatch(value)
+  if not match: raise ValueError('Use Ctrl, Alt, Shift ou Win com uma tecla compatível, ou desative o atalho.')
+  modifiers=match.group('modifiers')
+  if not modifiers: raise ValueError('O atalho precisa incluir pelo menos um modificador.')
+  if len(set(modifiers))!=len(modifiers): raise ValueError('Não repita modificadores no atalho.')
+  return value
+class ShortcutCapture(BaseModel):
+ enabled: bool
 class TTSRequest(BaseModel):
  text: str=Field(min_length=1,max_length=5000)
  voice: str|None=None
@@ -66,6 +81,19 @@ def home(): return Path(__file__).with_name('configuracao.html').read_text(encod
 def health(): return {'status':'ready','gpu':torch.cuda.get_device_name(0) if torch.cuda.is_available() else None}
 @app.get('/config')
 def config(): return read_config()
+@app.get('/shortcut/state')
+def shortcut_state():
+ global shortcut_capture_until
+ settings=read_config()
+ with shortcut_capture_lock:
+  if shortcut_capture_until<=time.monotonic(): shortcut_capture_until=0
+  return {'shortcut':settings.shortcut,'capture':shortcut_capture_until>0}
+@app.put('/shortcut/capture')
+def set_shortcut_capture(request:ShortcutCapture):
+ global shortcut_capture_until
+ with shortcut_capture_lock:
+  shortcut_capture_until=time.monotonic()+90 if request.enabled else 0
+ return {'capture':request.enabled}
 @app.put('/config')
 def update(settings:Settings):
  with lock: save_config(settings)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 - 2026-11-06
+
+- Allow recording or disabling the global reading shortcut from the settings page and apply changes in the running AutoHotkey listener.
+- Pause the active listener while capturing a new combination, with an automatic recovery timeout.
+
 ## 0.1.3 - 2026-11-06
 
 - Redesign the local settings page with responsive engine-specific panels and temporary save notifications.

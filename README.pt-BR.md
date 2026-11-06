@@ -1,6 +1,6 @@
 # Voice Local Resident
 
-[Read in English](README.md) · Leitor local de texto em português brasileiro para Windows com Kokoro, F5-TTS e Edge TTS on-line. Selecione um texto e pressione **Ctrl + Alt + S**. A página local salva configurações separadas para cada motor.
+[Read in English](README.md) · Leitor local de texto em português brasileiro para Windows com Kokoro, F5-TTS e Edge TTS on-line. Selecione um texto e use o atalho configurável (**Ctrl + Alt + S** por padrão). A página local salva configurações separadas para cada motor.
 
 ## Antes de começar
 
@@ -68,13 +68,13 @@ $env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
 & "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 server.py
 ```
 
-Se escolheu outra pasta para os modelos, coloque o caminho escolhido na variável. Mantenha essa janela aberta. Acesse http://127.0.0.1:8888/, escolha o motor, ajuste seus parâmetros e clique em **Salvar configurações**. No Explorador de Arquivos, dê dois cliques em `read_selection.ahk` para iniciar o atalho. Selecione um texto e pressione **Ctrl + Alt + S**.
+Se escolheu outra pasta para os modelos, coloque o caminho escolhido na variável. Mantenha essa janela aberta. Acesse http://127.0.0.1:8888/, escolha o motor, ajuste seus parâmetros e clique em **Salvar configurações**. No Explorador de Arquivos, dê dois cliques em `read_selection.ahk` para iniciar o atalho. Selecione um texto e pressione **Ctrl + Alt + S**, ou configure outra combinação na página: clique em **Gravar combinação**, pressione Ctrl, Alt, Shift ou Win junto com outra tecla e salve. O AHK aplica a mudança automaticamente e pausa o atalho atual durante a captura. Se a página fechar inesperadamente, a pausa expira sozinha. Use **Desativar** para desligar o atalho.
 
 Para parar, saia pelo ícone do AutoHotkey na bandeja e pressione Ctrl+C na janela do servidor. Fechar o navegador não encerra o servidor. Se a porta 8888 ou o atalho já estiverem em uso pelo leitor anterior, encerre-o antes de iniciar esta versão.
 
 ## Edge TTS pela internet
 
-Na página de configuração, escolha **Edge TTS**, selecione Francisca, Antonio ou Thalita Multilingual, ajuste velocidade, volume e tonalidade e salve. O mesmo atalho Ctrl + Alt + S usa o motor selecionado. O Edge TTS envia o texto selecionado pela internet para a Microsoft e não usa a GPU para sintetizar a voz. A biblioteca comunitária [edge-tts](https://github.com/rany2/edge-tts) atualmente não exige chave de API, mas a disponibilidade, as vozes e as condições do serviço podem mudar. A demora depende da rede e do serviço. O FFmpeg converte o áudio para reprodução.
+Na página de configuração, escolha **Edge TTS**, selecione Francisca, Antonio ou Thalita Multilingual, ajuste velocidade, volume e tonalidade e salve. O atalho configurado usa o motor selecionado. O Edge TTS envia o texto selecionado pela internet para a Microsoft e não usa a GPU para sintetizar a voz. A biblioteca comunitária [edge-tts](https://github.com/rany2/edge-tts) atualmente não exige chave de API, mas a disponibilidade, as vozes e as condições do serviço podem mudar. A demora depende da rede e do serviço. O FFmpeg converte o áudio para reprodução.
 
 Para atualizar uma instalação existente, execute `uv pip install --python "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -r requirements.txt` e reinicie o leitor.
 

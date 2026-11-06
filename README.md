@@ -1,6 +1,6 @@
 # Voice Local Resident
 
-[Português brasileiro](README.pt-BR.md) · Local Windows text-to-speech reader for Brazilian Portuguese using Kokoro, F5-TTS and online Edge TTS. Select text and press **Ctrl+Alt+S**. Settings for each engine are saved separately in the local configuration page.
+[Português brasileiro](README.pt-BR.md) · Local Windows text-to-speech reader for Brazilian Portuguese using Kokoro, F5-TTS and online Edge TTS. Select text and use the configurable reading shortcut (**Ctrl+Alt+S** by default). Settings for each engine are saved separately in the local configuration page.
 
 ## Requirements
 
@@ -66,11 +66,11 @@ $env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
 & "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 server.py
 ```
 
-Leave the window open. Open http://127.0.0.1:8888/, select an engine, adjust its settings and save. In File Explorer, double-click `read_selection.ahk` to start the shortcut. Select text and press Ctrl+Alt+S. To stop, exit the AutoHotkey tray icon and press Ctrl+C in the server window. Closing the browser does not stop the server. If port 8888 or the shortcut is already used by an older reader, stop that reader first.
+Leave the window open. Open http://127.0.0.1:8888/, select an engine, adjust its settings and save. In File Explorer, double-click `read_selection.ahk` to start the shortcut listener. Select text and press Ctrl+Alt+S, or configure another combination on the page. Choose **Gravar combinação**, press Ctrl, Alt, Shift or Win together with a key, then save. The listener applies it automatically. It pauses the current shortcut during capture and resumes it when capture ends; an automatic timeout restores it if the page closes unexpectedly. Choose **Desativar** to turn the shortcut off. To stop, exit the AutoHotkey tray icon and press Ctrl+C in the server window. Closing the browser does not stop the server. If port 8888 or the shortcut is already used by an older reader, stop that reader first.
 
 ## Edge TTS online
 
-Select **Edge TTS** on the configuration page, choose Francisca, Antonio or Thalita Multilingual, adjust rate, volume and pitch, and save. The same Ctrl+Alt+S shortcut uses the selected engine. Edge TTS sends selected text over the internet to Microsoft; it does not use the GPU for synthesis. The community-maintained [edge-tts](https://github.com/rany2/edge-tts) library currently requires no API key, but service availability, voices and terms can change. Latency depends on the network and service. FFmpeg converts the response for playback.
+Select **Edge TTS** on the configuration page, choose Francisca, Antonio or Thalita Multilingual, adjust rate, volume and pitch, and save. The configured reading shortcut uses the selected engine. Edge TTS sends selected text over the internet to Microsoft; it does not use the GPU for synthesis. The community-maintained [edge-tts](https://github.com/rany2/edge-tts) library currently requires no API key, but service availability, voices and terms can change. Latency depends on the network and service. FFmpeg converts the response for playback.
 
 For an existing installation, update the main environment with `uv pip install --python "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -r requirements.txt` and restart the reader.
 

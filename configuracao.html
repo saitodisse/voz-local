@@ -266,29 +266,86 @@
             }
 
             .shortcut-card {
+                display: grid;
+                gap: 0.7rem;
                 padding: 0.9rem 0.95rem;
                 border: 1px solid var(--line);
                 border-radius: 10px;
                 background: white;
             }
 
+            .shortcut-top {
+                display: grid;
+                min-width: 0;
+                justify-items: start;
+                gap: 0.4rem;
+            }
+
             .shortcut-label {
                 display: block;
-                margin-bottom: 0.4rem;
+                margin: 0;
                 color: #6a8178;
                 font-size: 0.65rem;
                 font-weight: 800;
                 letter-spacing: 0.12em;
                 text-transform: uppercase;
+                white-space: nowrap;
             }
 
             .shortcut-keys {
                 display: flex;
+                min-width: 0;
+                flex-wrap: wrap;
                 align-items: center;
                 gap: 0.28rem;
                 color: var(--ink);
                 font-size: 0.82rem;
                 font-weight: 680;
+            }
+
+            .shortcut-keys.is-disabled {
+                color: var(--muted);
+                font-size: 0.75rem;
+                font-weight: 650;
+            }
+
+            .shortcut-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.45rem;
+            }
+
+            .shortcut-action {
+                min-height: 2.15rem;
+                padding: 0.35rem 0.58rem;
+                border: 1px solid #b9cdc1;
+                border-radius: 6px;
+                color: #214a3e;
+                background: #edf5ee;
+                font-size: 0.74rem;
+                font-weight: 700;
+                cursor: pointer;
+                touch-action: manipulation;
+            }
+
+            .shortcut-action:hover,
+            .shortcut-action[aria-pressed="true"] {
+                border-color: #4e8066;
+                color: #173f34;
+                background: #dcebdc;
+            }
+
+            .shortcut-action.secondary {
+                color: #536b60;
+                background: transparent;
+            }
+
+            .shortcut-help {
+                min-height: 2.2em;
+                margin: 0;
+                color: var(--muted);
+                font-size: 0.71rem;
+                line-height: 1.45;
             }
 
             kbd {
@@ -582,15 +639,11 @@
                 }
 
                 .shortcut-card {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 0.75rem;
                     padding: 0.65rem 0.8rem;
                 }
 
-                .shortcut-label {
-                    margin: 0;
+                .shortcut-top {
+                    align-items: center;
                 }
 
                 .settings-area {
@@ -704,6 +757,28 @@
                     background: #192822;
                 }
 
+                .shortcut-action {
+                    border-color: #476354;
+                    color: #d4e8d9;
+                    background: #294034;
+                }
+
+                .shortcut-action:hover,
+                .shortcut-action[aria-pressed="true"] {
+                    border-color: #85ad85;
+                    color: #f2fff3;
+                    background: #385440;
+                }
+
+                .shortcut-action.secondary {
+                    color: #bfd0c5;
+                    background: transparent;
+                }
+
+                .shortcut-help {
+                    color: #afc0b6;
+                }
+
                 kbd {
                     border-color: #40574a;
                     background: #24352d;
@@ -763,7 +838,7 @@
                         <span>Voz Local · Leitura em voz alta</span>
                     </div>
                     <h1>Ajuste a voz da sua leitura.</h1>
-                    <p class="hero-copy">Escolha o motor e personalize como o atalho Ctrl + Alt + S lê os textos selecionados.</p>
+                    <p class="hero-copy">Escolha o motor e personalize como o atalho <strong id="shortcut-inline">Ctrl + Alt + S</strong> lê os textos selecionados.</p>
                 </div>
                 <span class="local-badge">Preferências neste computador</span>
             </header>
@@ -782,8 +857,15 @@
                         </select>
                         <p id="engine-note" class="engine-note">Vozes brasileiras com síntese local; o modelo é carregado quando necessário.</p>
                         <div class="shortcut-card">
-                            <span class="shortcut-label">Atalho de leitura</span>
-                            <span class="shortcut-keys"><kbd>Ctrl</kbd><span aria-hidden="true">+</span><kbd>Alt</kbd><span aria-hidden="true">+</span><kbd>S</kbd></span>
+                            <div class="shortcut-top">
+                                <span class="shortcut-label">Atalho de leitura</span>
+                                <span id="shortcut-keys" class="shortcut-keys" aria-live="polite"><kbd>Ctrl</kbd><span aria-hidden="true">+</span><kbd>Alt</kbd><span aria-hidden="true">+</span><kbd>S</kbd></span>
+                            </div>
+                            <div class="shortcut-actions">
+                                <button id="capture-shortcut" class="shortcut-action" type="button" aria-pressed="false">Gravar combinação</button>
+                                <button id="disable-shortcut" class="shortcut-action secondary" type="button">Desativar</button>
+                            </div>
+                            <p id="shortcut-help" class="shortcut-help">Grave uma combinação ou desative o atalho. O AHK pausa durante a captura; salve para aplicar.</p>
                         </div>
                     </div>
 
@@ -904,6 +986,41 @@
             let toastTimer;
             let settingsLoaded = false;
             let hasUnsavedChanges = false;
+            let shortcut = "^!s";
+            let isCapturingShortcut = false;
+            let isPreparingShortcut = false;
+            let capturedShortcutPendingRelease = false;
+            let captureTimeout;
+            let pressedCaptureKeys = new Set();
+            const shortcutModifiers = [
+                ["^", "Ctrl"],
+                ["!", "Alt"],
+                ["+", "Shift"],
+                ["#", "Win"],
+            ];
+            const shortcutKeyNames = {
+                Space: "Espaço",
+                Tab: "Tab",
+                Enter: "Enter",
+                Esc: "Esc",
+                Backspace: "Backspace",
+                Delete: "Delete",
+                Insert: "Insert",
+                Home: "Home",
+                End: "End",
+                PgUp: "Page Up",
+                PgDn: "Page Down",
+                Up: "↑",
+                Down: "↓",
+                Left: "←",
+                Right: "→",
+                NumpadAdd: "Num Add",
+                NumpadSub: "Num −",
+                NumpadMult: "Num ×",
+                NumpadDiv: "Num ÷",
+                NumpadDot: "Num .",
+                NumpadEnter: "Num Enter",
+            };
 
             function showSelectedEngine() {
                 const selectedEngine = $("engine").value;
@@ -912,6 +1029,211 @@
                 });
                 $("engine-note").textContent = engineNotes[selectedEngine] || "";
             }
+
+            function formatShortcut(value) {
+                if (!value) return "Atalho desativado";
+                const labels = shortcutModifiers
+                    .filter(([symbol]) => value.includes(symbol))
+                    .map(([, label]) => label);
+                const key = value.replace(/[!^+#]/g, "");
+                labels.push(shortcutKeyNames[key] || (key.length === 1 ? key.toUpperCase() : key));
+                return labels.join(" + ");
+            }
+
+            function renderShortcut() {
+                const display = $("shortcut-keys");
+                display.replaceChildren();
+                display.classList.toggle("is-disabled", !shortcut);
+                if (!shortcut) {
+                    display.textContent = "Atalho desativado";
+                } else {
+                    const labels = formatShortcut(shortcut).split(" + ");
+                    labels.forEach((label, index) => {
+                        if (index) {
+                            const separator = document.createElement("span");
+                            separator.setAttribute("aria-hidden", "true");
+                            separator.textContent = "+";
+                            display.append(separator);
+                        }
+                        const key = document.createElement("kbd");
+                        key.textContent = label;
+                        display.append(key);
+                    });
+                }
+                $("shortcut-inline").textContent = shortcut ? formatShortcut(shortcut) : "desativado";
+            }
+
+            function setShortcut(value, message) {
+                shortcut = value;
+                renderShortcut();
+                $("shortcut-help").textContent = message;
+                if (settingsLoaded) hasUnsavedChanges = true;
+            }
+
+            function setCaptureState(active) {
+                isCapturingShortcut = active;
+                if (active) {
+                    capturedShortcutPendingRelease = false;
+                    pressedCaptureKeys = new Set();
+                    window.clearTimeout(captureTimeout);
+                    captureTimeout = window.setTimeout(() => {
+                        if (!isCapturingShortcut) return;
+                        endShortcutCapture();
+                        $("shortcut-help").textContent = "A captura expirou. Grave a combinação novamente ou salve as alterações.";
+                    }, 30000);
+                } else {
+                    capturedShortcutPendingRelease = false;
+                    pressedCaptureKeys.clear();
+                    window.clearTimeout(captureTimeout);
+                }
+                const button = $("capture-shortcut");
+                button.setAttribute("aria-pressed", String(active));
+                button.textContent = active ? "Pressione a combinação…" : "Gravar combinação";
+            }
+
+            async function requestCaptureMode(enabled) {
+                const response = await fetch("/shortcut/capture", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ enabled }),
+                    keepalive: !enabled,
+                });
+                if (!response.ok) throw Error("Não foi possível pausar o atalho para gravar a combinação.");
+            }
+
+            function endShortcutCapture() {
+                setCaptureState(false);
+                requestCaptureMode(false).catch(() => {});
+            }
+
+            function keyNameFromEvent(event) {
+                const code = event.code;
+                if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+                if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+                if (/^F(?:[1-9]|1[0-9]|2[0-4])$/.test(code)) return code;
+                if (/^Numpad[0-9]$/.test(code)) return code;
+                const names = {
+                    Space: "Space",
+                    Tab: "Tab",
+                    Enter: "Enter",
+                    Escape: "Esc",
+                    Backspace: "Backspace",
+                    Delete: "Delete",
+                    Insert: "Insert",
+                    Home: "Home",
+                    End: "End",
+                    PageUp: "PgUp",
+                    PageDown: "PgDn",
+                    ArrowUp: "Up",
+                    ArrowDown: "Down",
+                    ArrowLeft: "Left",
+                    ArrowRight: "Right",
+                    NumpadAdd: "NumpadAdd",
+                    NumpadSubtract: "NumpadSub",
+                    NumpadMultiply: "NumpadMult",
+                    NumpadDivide: "NumpadDiv",
+                    NumpadDecimal: "NumpadDot",
+                    NumpadEnter: "NumpadEnter",
+                };
+                return names[code] || "";
+            }
+
+            $("capture-shortcut").addEventListener("click", async () => {
+                if (isCapturingShortcut) {
+                    endShortcutCapture();
+                    $("shortcut-help").textContent = "Captura cancelada; o atalho anterior foi mantido.";
+                    return;
+                }
+                const button = $("capture-shortcut");
+                const disableButton = $("disable-shortcut");
+                isPreparingShortcut = true;
+                button.disabled = true;
+                disableButton.disabled = true;
+                button.textContent = "Preparando…";
+                try {
+                    await requestCaptureMode(true);
+                    await new Promise((resolve) => window.setTimeout(resolve, 500));
+                    if (!isPreparingShortcut) return;
+                    setCaptureState(true);
+                    $("shortcut-help").textContent = "Pressione Ctrl, Alt, Shift ou Win junto com uma tecla. Esc cancela.";
+                } catch (error) {
+                    isPreparingShortcut = false;
+                    setCaptureState(false);
+                    $("shortcut-help").textContent = error.message;
+                    requestCaptureMode(false).catch(() => {});
+                } finally {
+                    isPreparingShortcut = false;
+                    button.disabled = false;
+                    disableButton.disabled = false;
+                }
+            });
+
+            $("disable-shortcut").addEventListener("click", () => {
+                if (isCapturingShortcut) endShortcutCapture();
+                setShortcut("", "Atalho desativado. Grave uma combinação para reativá-lo; salve para aplicar.");
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (!isCapturingShortcut || event.repeat || event.isComposing) return;
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                pressedCaptureKeys.add(event.code);
+                if (capturedShortcutPendingRelease) return;
+
+                const hasModifier = event.ctrlKey || event.altKey || event.shiftKey || event.metaKey;
+                if (event.code === "Escape" && !hasModifier) {
+                    endShortcutCapture();
+                    $("shortcut-help").textContent = "Captura cancelada; o atalho anterior foi mantido.";
+                    return;
+                }
+                if (["Control", "Alt", "Shift", "Meta"].includes(event.key)) return;
+
+                let modifiers = "";
+                if (event.ctrlKey) modifiers += "^";
+                if (event.altKey) modifiers += "!";
+                if (event.shiftKey) modifiers += "+";
+                if (event.metaKey) modifiers += "#";
+                if (!modifiers) {
+                    $("shortcut-help").textContent = "Inclua Ctrl, Alt, Shift ou Win para evitar capturar uma tecla usada ao digitar.";
+                    return;
+                }
+
+                const key = keyNameFromEvent(event);
+                if (!key) {
+                    $("shortcut-help").textContent = "Essa tecla não é compatível. Use letras, números, F1–F24 ou uma tecla de navegação.";
+                    return;
+                }
+                capturedShortcutPendingRelease = true;
+                setShortcut(modifiers + key, "Combinação capturada. Salve as configurações para aplicá-la.");
+            }, true);
+
+            document.addEventListener("keyup", (event) => {
+                if (!isCapturingShortcut) return;
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                pressedCaptureKeys.delete(event.code);
+                if (!capturedShortcutPendingRelease || pressedCaptureKeys.size) return;
+                endShortcutCapture();
+                $("shortcut-help").textContent = "Combinação capturada. Salve as configurações para aplicá-la.";
+            }, true);
+
+            window.addEventListener("blur", () => {
+                if (isPreparingShortcut) {
+                    isPreparingShortcut = false;
+                    setCaptureState(false);
+                    requestCaptureMode(false).catch(() => {});
+                    $("capture-shortcut").disabled = false;
+                    $("disable-shortcut").disabled = false;
+                    $("shortcut-help").textContent = "Captura cancelada; o atalho anterior foi mantido.";
+                    return;
+                }
+                if (!isCapturingShortcut) return;
+                endShortcutCapture();
+                $("shortcut-help").textContent = "Captura cancelada; o atalho anterior foi mantido.";
+            });
+            window.addEventListener("pagehide", () => {
+                if (isCapturingShortcut || isPreparingShortcut) requestCaptureMode(false).catch(() => {});
+            });
 
             function showToast(message, kind = "success", duration = 3200) {
                 window.clearTimeout(toastTimer);
@@ -931,6 +1253,8 @@
                 if (!response.ok) throw Error("Não foi possível carregar as configurações.");
                 const settings = await response.json();
                 $("engine").value = settings.engine;
+                shortcut = settings.shortcut ?? "^!s";
+                renderShortcut();
                 showSelectedEngine();
                 $("voice").value = settings.kokoro.voice;
                 $("kspeed").value = settings.kokoro.speed;
@@ -981,6 +1305,7 @@
                 const buttonLabel = button.querySelector(".button-label");
                 const body = {
                     engine: $("engine").value,
+                    shortcut,
                     kokoro: { voice: $("voice").value, speed: +$("kspeed").value },
                     f5: {
                         speed: +$("fspeed").value,
@@ -1011,7 +1336,7 @@
                     });
                     if (!response.ok) throw Error("Confira os valores dos campos e tente salvar novamente.");
                     hasUnsavedChanges = false;
-                    showToast("Configurações salvas neste computador.");
+                    showToast("Configurações salvas. O AHK aplica o atalho em até 1 segundo.");
                 } catch (error) {
                     showToast(error.message || "Não foi possível salvar as configurações.", "error", 5000);
                 } finally {
@@ -1021,6 +1346,7 @@
                 }
             });
 
+            renderShortcut();
             showSelectedEngine();
             load().catch((error) => showToast(error.message, "error", 5000));
         </script>
