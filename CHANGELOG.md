@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 - 2026-11-06
+
+- Redesign the local settings page with responsive engine-specific panels and temporary save notifications.
+
 ## 0.1.2 - 2026-11-06
 
 - Add online Edge TTS with Brazilian voices and independent rate, volume and pitch settings.

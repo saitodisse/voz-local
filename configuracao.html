@@ -1,4 +1,1028 @@
-<!doctype html><html lang="pt-br"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Configurar Voz Local</title><style>body{font:16px system-ui;max-width:760px;margin:2rem auto;padding:0 1rem;background:#f5f7f8;color:#192d35}section{background:white;padding:1.2rem;border-radius:12px;margin:1rem 0}label{display:block;margin:.8rem 0}input,select,button{padding:.5rem;font:inherit}button{background:#185a57;color:white;border:0;border-radius:6px;cursor:pointer}.hint{color:#4f666a;font-size:.9rem}</style><h1>Configurar Voz Local</h1><p>Escolha o motor para o atalho <strong>Ctrl + Alt + S</strong>. As configurações ficam salvas neste computador.</p><label>Motor ativo <select id="engine"><option value="kokoro">Kokoro</option><option value="f5">F5-TTS pt-BR</option><option value="edge">Microsoft Edge TTS (online)</option></select></label><section><h2>Kokoro</h2><label>Voz <select id="voice"><option value="pf_dora">Dora</option><option value="pm_alex">Alex</option><option value="pm_santa">Santa</option></select></label><label>Velocidade <input id="kspeed" type="number" min="0.7" max="1.3" step="0.05"></label></section><section><h2>F5-TTS pt-BR</h2><p class="hint">Usa a referência Cadu. Limite de 500 caracteres por leitura. O checkpoint tem licença não comercial.</p><label>Velocidade <input id="fspeed" type="number" min="0.7" max="1.3" step="0.05"></label><label>Passos de geração <input id="nfe" type="number" min="8" max="64" step="1"> <span class="hint">Mais passos podem aumentar o tempo.</span></label><label>Força de orientação <input id="cfg" type="number" min="0" max="5" step="0.1"></label><label>Ajuste de amostragem (sway) <input id="sway" type="number" min="-2" max="1" step="0.1"></label><label>Transição entre trechos em segundos <input id="fade" type="number" min="0" max="1" step="0.05"></label><label>Nível de referência (RMS) <input id="rms" type="number" min="0.01" max="0.5" step="0.01"></label><label>Semente (-1 = aleatória) <input id="seed" type="number" min="-1" max="2147483647" step="1"></label></section><section><h2>Microsoft Edge TTS — online</h2><p class="hint">O texto é enviado à Microsoft pela internet. A disponibilidade e as condições de uso podem mudar.</p><label>Voz <select id="edge_voice"><option value="pt-BR-FranciscaNeural">Francisca</option><option value="pt-BR-AntonioNeural">Antonio</option><option value="pt-BR-ThalitaMultilingualNeural">Thalita Multilingual</option></select></label><label>Velocidade (%) <input id="edge_rate" type="number" min="-50" max="100" step="5"></label><label>Volume (%) <input id="edge_volume" type="number" min="-100" max="100" step="5"></label><label>Tonalidade (Hz) <input id="edge_pitch" type="number" min="-50" max="50" step="1"></label></section><button id="save">Salvar configurações</button> <span id="status" role="status"></span><script>
-const $=id=>document.getElementById(id); async function load(){let r=await fetch('/config');if(!r.ok)throw Error('Não foi possível carregar');let s=await r.json();$('engine').value=s.engine;$('voice').value=s.kokoro.voice;$('kspeed').value=s.kokoro.speed;for(const [id,key] of Object.entries({fspeed:'speed',nfe:'nfe_step',cfg:'cfg_strength',sway:'sway_sampling_coef',fade:'cross_fade_duration',rms:'target_rms',seed:'seed'}))$(id).value=s.f5[key]}
-$('save').onclick=async()=>{let body={engine:$('engine').value,kokoro:{voice:$('voice').value,speed:+$('kspeed').value},f5:{speed:+$('fspeed').value,nfe_step:+$('nfe').value,cfg_strength:+$('cfg').value,sway_sampling_coef:+$('sway').value,cross_fade_duration:+$('fade').value,target_rms:+$('rms').value,seed:+$('seed').value,reference:'cadu'}};try{let r=await fetch('/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:(body.edge={voice:document.getElementById('edge_voice').value,rate:+document.getElementById('edge_rate').value,volume:+document.getElementById('edge_volume').value,pitch:+document.getElementById('edge_pitch').value},JSON.stringify(body))});if(!r.ok)throw Error('Confira os valores dos campos.');$('status').textContent='Salvo neste computador.'}catch(e){$('status').textContent=e.message}};load().catch(e=>$('status').textContent=e.message)
-</script><script>fetch('/config').then(r=>r.json()).then(s=>{for(const k of ['voice','rate','volume','pitch'])document.getElementById('edge_'+k).value=s.edge[k]}).catch(()=>{document.getElementById('status').textContent='Não foi possível carregar as opções do Edge.'})</script></html>
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#123d37" />
+        <title>Configuração de voz · Voz Local</title>
+        <style>
+            :root {
+                color-scheme: light;
+                --page: #eaf0ed;
+                --paper: #ffffff;
+                --paper-soft: #f6f9f7;
+                --ink: #19332f;
+                --muted: #5c716b;
+                --line: #dce7e1;
+                --forest: #123d37;
+                --forest-hover: #1a554b;
+                --mint: #bfe18b;
+                --warning: #8a4a27;
+                --warning-bg: #fff4e7;
+                --success: #204e3a;
+                --success-bg: #e7f5e9;
+                --error: #8e352c;
+                --error-bg: #fff0ec;
+                --shadow: 0 24px 70px rgb(24 54 45 / 10%);
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html {
+                min-width: 320px;
+                background: var(--page);
+                scroll-behavior: smooth;
+            }
+
+            body {
+                min-height: 100vh;
+                margin: 0;
+                color: var(--ink);
+                background:
+                    radial-gradient(ellipse at 88% 4%, rgb(191 225 139 / 22%), transparent 29rem),
+                    var(--page);
+                font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+                line-height: 1.55;
+                -webkit-tap-highlight-color: rgb(18 61 55 / 16%);
+            }
+
+            button,
+            input,
+            select {
+                font: inherit;
+            }
+
+            .skip-link {
+                position: absolute;
+                z-index: 10;
+                top: 0.75rem;
+                left: 0.75rem;
+                padding: 0.65rem 0.9rem;
+                transform: translateY(-180%);
+                border-radius: 0.6rem;
+                color: white;
+                background: var(--forest);
+            }
+
+            .skip-link:focus {
+                transform: translateY(0);
+            }
+
+            .page-shell {
+                width: min(100% - 2.5rem, 1000px);
+                margin: 0 auto;
+                padding: 3rem 0 4rem;
+            }
+
+            .hero {
+                position: relative;
+                display: flex;
+                min-height: 238px;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 2rem;
+                overflow: hidden;
+                padding: 2.3rem 2.5rem 3.5rem;
+                border-radius: 22px 22px 10px 10px;
+                color: white;
+                background: var(--forest);
+            }
+
+            .hero::after {
+                position: absolute;
+                right: -2.5rem;
+                bottom: -6.4rem;
+                width: 19rem;
+                height: 13rem;
+                transform: rotate(-18deg);
+                border: 1px solid rgb(191 225 139 / 30%);
+                border-radius: 50%;
+                box-shadow:
+                    0 0 0 18px rgb(191 225 139 / 5%),
+                    0 0 0 38px rgb(191 225 139 / 5%),
+                    0 0 0 58px rgb(191 225 139 / 4%);
+                content: "";
+                pointer-events: none;
+            }
+
+            .brand-line {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                margin-bottom: 1.45rem;
+                color: var(--mint);
+                font-size: 0.72rem;
+                font-weight: 750;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+            }
+
+            .wave-mark {
+                display: inline-flex;
+                height: 1.25rem;
+                align-items: center;
+                gap: 3px;
+            }
+
+            .wave-mark span {
+                width: 3px;
+                border-radius: 99px;
+                background: currentColor;
+            }
+
+            .wave-mark span:nth-child(1),
+            .wave-mark span:nth-child(5) {
+                height: 0.48rem;
+            }
+
+            .wave-mark span:nth-child(2),
+            .wave-mark span:nth-child(4) {
+                height: 0.9rem;
+            }
+
+            .wave-mark span:nth-child(3) {
+                height: 1.2rem;
+            }
+
+            .hero h1 {
+                max-width: 17ch;
+                margin: 0;
+                color: white;
+                font-family: Georgia, "Times New Roman", serif;
+                font-size: clamp(2rem, 4vw, 2.8rem);
+                font-weight: 500;
+                letter-spacing: -0.035em;
+                line-height: 1.08;
+                text-wrap: balance;
+            }
+
+            .hero-copy {
+                max-width: 38rem;
+                margin: 0.85rem 0 0;
+                color: rgb(255 255 255 / 76%);
+                font-size: 1rem;
+                text-wrap: pretty;
+            }
+
+            .local-badge {
+                position: relative;
+                z-index: 1;
+                display: inline-flex;
+                flex: 0 0 auto;
+                align-items: center;
+                gap: 0.55rem;
+                padding: 0.6rem 0.8rem;
+                border: 1px solid rgb(255 255 255 / 21%);
+                border-radius: 999px;
+                color: #edf6ee;
+                background: rgb(255 255 255 / 7%);
+                font-size: 0.78rem;
+                font-weight: 650;
+                white-space: nowrap;
+            }
+
+            .local-badge::before {
+                width: 0.48rem;
+                height: 0.48rem;
+                border-radius: 50%;
+                background: var(--mint);
+                content: "";
+            }
+
+            .config-card {
+                position: relative;
+                margin: -1.1rem 1rem 0;
+                overflow: hidden;
+                border: 1px solid rgb(220 231 225 / 85%);
+                border-radius: 15px;
+                background: var(--paper);
+                box-shadow: var(--shadow);
+            }
+
+            .config-layout {
+                display: grid;
+                grid-template-columns: minmax(220px, 0.78fr) minmax(0, 1.75fr);
+                min-height: 360px;
+            }
+
+            .engine-picker {
+                padding: 2rem 1.7rem;
+                border-right: 1px solid var(--line);
+                background: var(--paper-soft);
+            }
+
+            .section-kicker {
+                display: block;
+                margin: 0 0 0.65rem;
+                color: #57756b;
+                font-size: 0.68rem;
+                font-weight: 800;
+                letter-spacing: 0.13em;
+                text-transform: uppercase;
+            }
+
+            .engine-picker h2 {
+                margin: 0;
+                font-size: 1.15rem;
+                font-weight: 720;
+                letter-spacing: -0.025em;
+            }
+
+            .engine-picker > p {
+                margin: 0.45rem 0 1.3rem;
+                color: var(--muted);
+                font-size: 0.9rem;
+            }
+
+            .engine-select-label {
+                display: block;
+                margin-bottom: 0.45rem;
+                color: #36564e;
+                font-size: 0.78rem;
+                font-weight: 700;
+            }
+
+            #engine {
+                display: block;
+                width: 100%;
+                min-height: 3.15rem;
+                padding: 0.65rem 2.2rem 0.65rem 0.8rem;
+                border: 1px solid #bdcec5;
+                border-radius: 9px;
+                color: var(--ink);
+                background-color: white;
+                cursor: pointer;
+            }
+
+            .engine-note {
+                min-height: 4.3rem;
+                margin: 0.75rem 0 1.45rem;
+                color: var(--muted);
+                font-size: 0.84rem;
+                line-height: 1.5;
+                text-wrap: pretty;
+            }
+
+            .shortcut-card {
+                padding: 0.9rem 0.95rem;
+                border: 1px solid var(--line);
+                border-radius: 10px;
+                background: white;
+            }
+
+            .shortcut-label {
+                display: block;
+                margin-bottom: 0.4rem;
+                color: #6a8178;
+                font-size: 0.65rem;
+                font-weight: 800;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+            }
+
+            .shortcut-keys {
+                display: flex;
+                align-items: center;
+                gap: 0.28rem;
+                color: var(--ink);
+                font-size: 0.82rem;
+                font-weight: 680;
+            }
+
+            kbd {
+                padding: 0.18rem 0.34rem;
+                border: 1px solid #d5e0d9;
+                border-bottom-width: 2px;
+                border-radius: 5px;
+                background: #f8faf8;
+                font: inherit;
+                font-size: 0.75rem;
+            }
+
+            .settings-area {
+                min-width: 0;
+                padding: 2rem 2.2rem 1.7rem;
+            }
+
+            .engine-panel[hidden] {
+                display: none;
+            }
+
+            .panel-heading {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 1rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .panel-heading h2 {
+                margin: 0;
+                font-size: 1.4rem;
+                font-weight: 720;
+                letter-spacing: -0.035em;
+                line-height: 1.25;
+                text-wrap: balance;
+            }
+
+            .engine-badge {
+                display: inline-flex;
+                flex: 0 0 auto;
+                align-items: center;
+                padding: 0.32rem 0.55rem;
+                border: 1px solid #d8e8d7;
+                border-radius: 999px;
+                color: #355e47;
+                background: #f1f7ec;
+                font-size: 0.64rem;
+                font-weight: 800;
+                letter-spacing: 0.07em;
+                text-transform: uppercase;
+            }
+
+            .hint {
+                margin: -0.3rem 0 1rem;
+                color: var(--muted);
+                font-size: 0.88rem;
+                text-wrap: pretty;
+            }
+
+            .hint.warning {
+                margin: 0 0 1.3rem;
+                padding: 0.75rem 0.85rem;
+                border-left: 3px solid #d5a66c;
+                border-radius: 0 7px 7px 0;
+                color: var(--warning);
+                background: var(--warning-bg);
+                font-size: 0.82rem;
+            }
+
+            .settings-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                column-gap: 1.5rem;
+            }
+
+            .field {
+                display: flex;
+                min-width: 0;
+                min-height: 4.25rem;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.8rem;
+                margin: 0;
+                padding: 0.7rem 0;
+                border-bottom: 1px solid var(--line);
+                color: #36534c;
+                font-size: 0.84rem;
+                font-weight: 620;
+            }
+
+            .field-copy {
+                min-width: 0;
+            }
+
+            .field-note {
+                display: block;
+                margin-top: 0.12rem;
+                color: #72847d;
+                font-size: 0.71rem;
+                font-weight: 450;
+                line-height: 1.35;
+            }
+
+            .field input,
+            .field select {
+                width: min(100%, 8rem);
+                min-height: 2.55rem;
+                flex: 0 0 auto;
+                padding: 0.45rem 0.6rem;
+                border: 1px solid #cbd9d1;
+                border-radius: 7px;
+                color: var(--ink);
+                background-color: white;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .field select {
+                width: min(100%, 11rem);
+                cursor: pointer;
+            }
+
+            input:hover,
+            select:hover {
+                border-color: #8eaa9c;
+            }
+
+            :focus-visible {
+                outline: 3px solid #83ad5a;
+                outline-offset: 3px;
+            }
+
+            .actionbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                padding: 1.1rem 1.7rem;
+                border-top: 1px solid var(--line);
+                background: #fbfcfb;
+            }
+
+            .action-note {
+                margin: 0;
+                color: var(--muted);
+                font-size: 0.82rem;
+            }
+
+            #save {
+                display: inline-flex;
+                min-height: 2.85rem;
+                align-items: center;
+                justify-content: center;
+                gap: 0.65rem;
+                flex: 0 0 auto;
+                padding: 0.65rem 1.05rem;
+                border: 1px solid var(--forest);
+                border-radius: 8px;
+                color: white;
+                background: var(--forest);
+                font-size: 0.86rem;
+                font-weight: 720;
+                cursor: pointer;
+                touch-action: manipulation;
+                transition: background-color 140ms ease, transform 140ms ease;
+            }
+
+            #save:hover {
+                border-color: var(--forest-hover);
+                background: var(--forest-hover);
+            }
+
+            #save:active {
+                transform: translateY(1px);
+            }
+
+            #save:disabled {
+                cursor: wait;
+                opacity: 0.76;
+            }
+
+            .save-arrow {
+                color: var(--mint);
+                font-size: 1.1rem;
+                line-height: 1;
+            }
+
+            .toast {
+                position: fixed;
+                z-index: 20;
+                right: max(1.25rem, env(safe-area-inset-right));
+                bottom: max(1.25rem, env(safe-area-inset-bottom));
+                display: flex;
+                max-width: min(24rem, calc(100vw - 2rem));
+                align-items: center;
+                gap: 0.7rem;
+                padding: 0.9rem 1.05rem;
+                transform: translateY(0.6rem);
+                border: 1px solid #cde2d0;
+                border-radius: 11px;
+                color: var(--success);
+                background: var(--success-bg);
+                box-shadow: 0 12px 34px rgb(24 54 45 / 18%);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 180ms ease, transform 180ms ease;
+            }
+
+            .toast.is-visible {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            .toast[data-kind="error"] {
+                border-color: #edc9bf;
+                color: var(--error);
+                background: var(--error-bg);
+            }
+
+            .toast-icon {
+                display: grid;
+                width: 1.4rem;
+                height: 1.4rem;
+                flex: 0 0 auto;
+                place-items: center;
+                border-radius: 50%;
+                color: white;
+                background: #39724c;
+                font-size: 0.8rem;
+                font-weight: 800;
+            }
+
+            .toast[data-kind="error"] .toast-icon {
+                background: #a64c3d;
+            }
+
+            #status {
+                overflow-wrap: anywhere;
+                font-size: 0.87rem;
+                font-weight: 650;
+            }
+
+            @media (max-width: 720px) {
+                .page-shell {
+                    width: min(100% - 1.25rem, 600px);
+                    padding: 1rem 0 2rem;
+                }
+
+                .hero {
+                    min-height: 0;
+                    gap: 1rem;
+                    padding: 1.55rem 1.3rem 2.6rem;
+                    border-radius: 16px 16px 8px 8px;
+                }
+
+                .hero h1 {
+                    font-size: clamp(1.9rem, 8vw, 2.5rem);
+                }
+
+                .hero-copy {
+                    max-width: 30rem;
+                    font-size: 0.9rem;
+                }
+
+                .local-badge {
+                    padding: 0.5rem 0.6rem;
+                    font-size: 0.68rem;
+                }
+
+                .config-card {
+                    margin: -0.85rem 0.4rem 0;
+                }
+
+                .config-layout {
+                    grid-template-columns: 1fr;
+                }
+
+                .engine-picker {
+                    padding: 1.35rem 1.25rem;
+                    border-right: 0;
+                    border-bottom: 1px solid var(--line);
+                }
+
+                .engine-picker > p {
+                    margin-bottom: 0.9rem;
+                }
+
+                .engine-note {
+                    min-height: 0;
+                    margin: 0.55rem 0 0.85rem;
+                }
+
+                .shortcut-card {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.75rem;
+                    padding: 0.65rem 0.8rem;
+                }
+
+                .shortcut-label {
+                    margin: 0;
+                }
+
+                .settings-area {
+                    padding: 1.45rem 1.25rem 1.25rem;
+                }
+
+                .settings-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .field {
+                    min-height: 3.8rem;
+                }
+
+                .actionbar {
+                    align-items: flex-start;
+                    padding: 1rem 1.25rem;
+                }
+
+                .action-note {
+                    max-width: 17ch;
+                    padding-top: 0.25rem;
+                    font-size: 0.76rem;
+                }
+            }
+
+            @media (max-width: 430px) {
+                .hero {
+                    flex-direction: column-reverse;
+                    align-items: flex-start;
+                }
+
+                .brand-line {
+                    margin-bottom: 0.9rem;
+                }
+
+                .panel-heading {
+                    flex-direction: column;
+                    gap: 0.55rem;
+                }
+
+                .panel-heading h2 {
+                    font-size: 1.25rem;
+                }
+
+                .actionbar {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .action-note {
+                    max-width: none;
+                }
+
+                #save {
+                    width: 100%;
+                }
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    color-scheme: dark;
+                    --page: #101a17;
+                    --paper: #17241f;
+                    --paper-soft: #1d2d27;
+                    --ink: #e5efe8;
+                    --muted: #afc0b6;
+                    --line: #34483f;
+                    --forest: #123d37;
+                    --forest-hover: #21574b;
+                    --mint: #c7e99a;
+                    --warning: #ffd2a4;
+                    --warning-bg: #3b2c20;
+                    --success: #c5e8ca;
+                    --success-bg: #1d3525;
+                    --error: #ffc3b5;
+                    --error-bg: #3e2421;
+                    --shadow: 0 24px 70px rgb(0 0 0 / 28%);
+                }
+
+                body {
+                    background: radial-gradient(ellipse at 88% 4%, rgb(199 233 154 / 10%), transparent 29rem), var(--page);
+                }
+
+                .section-kicker,
+                .shortcut-label {
+                    color: #a9c5b4;
+                }
+
+                .engine-picker > p,
+                .engine-note,
+                .hint {
+                    color: var(--muted);
+                }
+
+                .engine-select-label,
+                .field {
+                    color: #c7d8ce;
+                }
+
+                #engine,
+                .field input,
+                .field select {
+                    border-color: #4b6458;
+                    color: var(--ink);
+                    background-color: #1c2c26;
+                }
+
+                .shortcut-card {
+                    border-color: var(--line);
+                    background: #192822;
+                }
+
+                kbd {
+                    border-color: #40574a;
+                    background: #24352d;
+                }
+
+                .engine-badge {
+                    border-color: #3a5a45;
+                    color: #c5e2b8;
+                    background: #233a2a;
+                }
+
+                .hint.warning {
+                    border-left-color: #d5a66c;
+                }
+
+                .field-note {
+                    color: #aabbb0;
+                }
+
+                input:hover,
+                select:hover {
+                    border-color: #86a591;
+                }
+
+                .actionbar {
+                    background: #15221d;
+                }
+
+                .toast {
+                    border-color: #3c6848;
+                }
+
+                .toast[data-kind="error"] {
+                    border-color: #75433a;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    scroll-behavior: auto !important;
+                    transition-duration: 0.01ms !important;
+                    animation-duration: 0.01ms !important;
+                    animation-iteration-count: 1 !important;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <a class="skip-link" href="#configuracao">Pular para as configurações</a>
+        <div class="page-shell">
+            <header class="hero">
+                <div>
+                    <div class="brand-line">
+                        <span class="wave-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+                        <span>Voz Local · Leitura em voz alta</span>
+                    </div>
+                    <h1>Ajuste a voz da sua leitura.</h1>
+                    <p class="hero-copy">Escolha o motor e personalize como o atalho Ctrl + Alt + S lê os textos selecionados.</p>
+                </div>
+                <span class="local-badge">Preferências neste computador</span>
+            </header>
+
+            <main id="configuracao" class="config-card">
+                <div class="config-layout">
+                    <div class="engine-picker">
+                        <span class="section-kicker">Configuração</span>
+                        <h2>Escolha o motor</h2>
+                        <p>As opções abaixo mudam conforme sua escolha.</p>
+                        <label class="engine-select-label" for="engine">Motor ativo</label>
+                        <select id="engine" name="engine" aria-controls="settings-kokoro settings-f5 settings-edge">
+                            <option value="kokoro">Kokoro</option>
+                            <option value="f5">F5-TTS pt-BR</option>
+                            <option value="edge">Microsoft Edge TTS (online)</option>
+                        </select>
+                        <p id="engine-note" class="engine-note">Vozes brasileiras com síntese local; o modelo é carregado quando necessário.</p>
+                        <div class="shortcut-card">
+                            <span class="shortcut-label">Atalho de leitura</span>
+                            <span class="shortcut-keys"><kbd>Ctrl</kbd><span aria-hidden="true">+</span><kbd>Alt</kbd><span aria-hidden="true">+</span><kbd>S</kbd></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-area">
+                        <section id="settings-kokoro" class="engine-panel" data-engine="kokoro" aria-labelledby="kokoro-title">
+                            <div class="panel-heading">
+                                <h2 id="kokoro-title">Kokoro</h2>
+                                <span class="engine-badge">Local · CUDA</span>
+                            </div>
+                            <div class="settings-grid">
+                                <label class="field" for="voice">
+                                    <span class="field-copy">Voz</span>
+                                    <select id="voice" name="voice" autocomplete="off">
+                                        <option value="pf_dora">Dora</option>
+                                        <option value="pm_alex">Alex</option>
+                                        <option value="pm_santa">Santa</option>
+                                    </select>
+                                </label>
+                                <label class="field" for="kspeed">
+                                    <span class="field-copy">Velocidade</span>
+                                    <input id="kspeed" name="kokoro-speed" type="number" min="0.7" max="1.3" step="0.05" inputmode="decimal" autocomplete="off" />
+                                </label>
+                            </div>
+                        </section>
+
+                        <section id="settings-f5" class="engine-panel" data-engine="f5" aria-labelledby="f5-title" hidden>
+                            <div class="panel-heading">
+                                <h2 id="f5-title">F5-TTS pt-BR</h2>
+                                <span class="engine-badge">Local · Não comercial</span>
+                            </div>
+                            <p class="hint warning">Usa a referência Cadu e aceita até 500 caracteres por leitura. O checkpoint tem licença não comercial.</p>
+                            <div class="settings-grid">
+                                <label class="field" for="fspeed">
+                                    <span class="field-copy">Velocidade</span>
+                                    <input id="fspeed" name="f5-speed" type="number" min="0.7" max="1.3" step="0.05" inputmode="decimal" autocomplete="off" />
+                                </label>
+                                <label class="field" for="nfe">
+                                    <span class="field-copy">Passos de geração<span class="field-note">Mais passos podem aumentar o tempo.</span></span>
+                                    <input id="nfe" name="nfe-step" type="number" min="8" max="64" step="1" inputmode="numeric" autocomplete="off" />
+                                </label>
+                                <label class="field" for="cfg">
+                                    <span class="field-copy">Força de orientação</span>
+                                    <input id="cfg" name="cfg-strength" type="number" min="0" max="5" step="0.1" inputmode="decimal" autocomplete="off" />
+                                </label>
+                                <label class="field" for="sway">
+                                    <span class="field-copy">Ajuste de amostragem (sway)</span>
+                                    <input id="sway" name="sway-sampling" type="number" min="-2" max="1" step="0.1" inputmode="decimal" autocomplete="off" />
+                                </label>
+                                <label class="field" for="fade">
+                                    <span class="field-copy">Transição entre trechos<span class="field-note">Duração em segundos.</span></span>
+                                    <input id="fade" name="cross-fade" type="number" min="0" max="1" step="0.05" inputmode="decimal" autocomplete="off" />
+                                </label>
+                                <label class="field" for="rms">
+                                    <span class="field-copy">Nível de referência (RMS)</span>
+                                    <input id="rms" name="target-rms" type="number" min="0.01" max="0.5" step="0.01" inputmode="decimal" autocomplete="off" />
+                                </label>
+                                <label class="field" for="seed">
+                                    <span class="field-copy">Semente<span class="field-note">−1 usa valor aleatório.</span></span>
+                                    <input id="seed" name="seed" type="number" min="-1" max="2147483647" step="1" inputmode="numeric" autocomplete="off" />
+                                </label>
+                            </div>
+                        </section>
+
+                        <section id="settings-edge" class="engine-panel" data-engine="edge" aria-labelledby="edge-title" hidden>
+                            <div class="panel-heading">
+                                <h2 id="edge-title">Microsoft Edge TTS</h2>
+                                <span class="engine-badge">Online</span>
+                            </div>
+                            <p class="hint">O texto selecionado é enviado à Microsoft para gerar o áudio. A disponibilidade e as condições de uso podem mudar.</p>
+                            <div class="settings-grid">
+                                <label class="field" for="edge_voice">
+                                    <span class="field-copy">Voz</span>
+                                    <select id="edge_voice" name="edge-voice" autocomplete="off">
+                                        <option value="pt-BR-FranciscaNeural">Francisca</option>
+                                        <option value="pt-BR-AntonioNeural">Antonio</option>
+                                        <option value="pt-BR-ThalitaMultilingualNeural">Thalita Multilingual</option>
+                                    </select>
+                                </label>
+                                <label class="field" for="edge_rate">
+                                    <span class="field-copy">Velocidade<span class="field-note">Porcentagem da velocidade base.</span></span>
+                                    <input id="edge_rate" name="edge-rate" type="number" min="-50" max="100" step="5" inputmode="numeric" autocomplete="off" />
+                                </label>
+                                <label class="field" for="edge_volume">
+                                    <span class="field-copy">Volume<span class="field-note">Porcentagem em relação ao padrão.</span></span>
+                                    <input id="edge_volume" name="edge-volume" type="number" min="-100" max="100" step="5" inputmode="numeric" autocomplete="off" />
+                                </label>
+                                <label class="field" for="edge_pitch">
+                                    <span class="field-copy">Tonalidade<span class="field-note">Ajuste em hertz.</span></span>
+                                    <input id="edge_pitch" name="edge-pitch" type="number" min="-50" max="50" step="1" inputmode="numeric" autocomplete="off" />
+                                </label>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="actionbar">
+                    <p class="action-note">As alterações valem para as próximas leituras.</p>
+                    <button id="save" type="button">
+                        <span class="button-label">Salvar configurações</span>
+                        <span class="save-arrow" aria-hidden="true">→</span>
+                    </button>
+                </div>
+            </main>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" data-kind="success">
+            <span id="toast-icon" class="toast-icon" aria-hidden="true">✓</span>
+            <span id="status"></span>
+        </div>
+
+        <script>
+            const $ = (id) => document.getElementById(id);
+            const engineNotes = {
+                kokoro: "Vozes brasileiras com síntese local; o modelo é carregado quando necessário.",
+                f5: "Síntese local com referência vocal Cadu e parâmetros próprios.",
+                edge: "A síntese acontece on-line e o texto é enviado à Microsoft.",
+            };
+            let toastTimer;
+            let settingsLoaded = false;
+            let hasUnsavedChanges = false;
+
+            function showSelectedEngine() {
+                const selectedEngine = $("engine").value;
+                document.querySelectorAll("[data-engine]").forEach((panel) => {
+                    panel.hidden = panel.dataset.engine !== selectedEngine;
+                });
+                $("engine-note").textContent = engineNotes[selectedEngine] || "";
+            }
+
+            function showToast(message, kind = "success", duration = 3200) {
+                window.clearTimeout(toastTimer);
+                const toast = $("toast");
+                toast.dataset.kind = kind;
+                $("toast-icon").textContent = kind === "success" ? "✓" : "!";
+                $("status").textContent = message;
+                toast.classList.add("is-visible");
+                toastTimer = window.setTimeout(() => {
+                    toast.classList.remove("is-visible");
+                    $("status").textContent = "";
+                }, duration);
+            }
+
+            async function load() {
+                const response = await fetch("/config");
+                if (!response.ok) throw Error("Não foi possível carregar as configurações.");
+                const settings = await response.json();
+                $("engine").value = settings.engine;
+                showSelectedEngine();
+                $("voice").value = settings.kokoro.voice;
+                $("kspeed").value = settings.kokoro.speed;
+
+                for (const [id, key] of Object.entries({
+                    fspeed: "speed",
+                    nfe: "nfe_step",
+                    cfg: "cfg_strength",
+                    sway: "sway_sampling_coef",
+                    fade: "cross_fade_duration",
+                    rms: "target_rms",
+                    seed: "seed",
+                })) {
+                    $(id).value = settings.f5[key];
+                }
+
+                const edge = settings.edge || {
+                    voice: "pt-BR-FranciscaNeural",
+                    rate: 0,
+                    volume: 0,
+                    pitch: 0,
+                };
+                $("edge_voice").value = edge.voice;
+                $("edge_rate").value = edge.rate;
+                $("edge_volume").value = edge.volume;
+                $("edge_pitch").value = edge.pitch;
+                settingsLoaded = true;
+                hasUnsavedChanges = false;
+            }
+
+            $("engine").addEventListener("change", showSelectedEngine);
+            document.querySelectorAll("#configuracao input, #configuracao select").forEach((control) => {
+                control.addEventListener("input", () => {
+                    if (settingsLoaded) hasUnsavedChanges = true;
+                });
+                control.addEventListener("change", () => {
+                    if (settingsLoaded) hasUnsavedChanges = true;
+                });
+            });
+            window.addEventListener("beforeunload", (event) => {
+                if (!hasUnsavedChanges) return;
+                event.preventDefault();
+                event.returnValue = "";
+            });
+
+            $("save").addEventListener("click", async () => {
+                const button = $("save");
+                const buttonLabel = button.querySelector(".button-label");
+                const body = {
+                    engine: $("engine").value,
+                    kokoro: { voice: $("voice").value, speed: +$("kspeed").value },
+                    f5: {
+                        speed: +$("fspeed").value,
+                        nfe_step: +$("nfe").value,
+                        cfg_strength: +$("cfg").value,
+                        sway_sampling_coef: +$("sway").value,
+                        cross_fade_duration: +$("fade").value,
+                        target_rms: +$("rms").value,
+                        seed: +$("seed").value,
+                        reference: "cadu",
+                    },
+                    edge: {
+                        voice: $("edge_voice").value,
+                        rate: +$("edge_rate").value,
+                        volume: +$("edge_volume").value,
+                        pitch: +$("edge_pitch").value,
+                    },
+                };
+
+                button.disabled = true;
+                button.setAttribute("aria-busy", "true");
+                buttonLabel.textContent = "Salvando…";
+                try {
+                    const response = await fetch("/config", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    });
+                    if (!response.ok) throw Error("Confira os valores dos campos e tente salvar novamente.");
+                    hasUnsavedChanges = false;
+                    showToast("Configurações salvas neste computador.");
+                } catch (error) {
+                    showToast(error.message || "Não foi possível salvar as configurações.", "error", 5000);
+                } finally {
+                    button.disabled = false;
+                    button.removeAttribute("aria-busy");
+                    buttonLabel.textContent = "Salvar configurações";
+                }
+            });
+
+            showSelectedEngine();
+            load().catch((error) => showToast(error.message, "error", 5000));
+        </script>
+    </body>
+</html>
