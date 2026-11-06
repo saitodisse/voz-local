@@ -49,7 +49,9 @@ app=FastAPI()
 @app.middleware('http')
 async def guard(request:Request,call_next):
  origin=request.headers.get('origin')
- if origin and origin not in ('http://127.0.0.1:8888','http://localhost:8888'):
+ if request.url.hostname not in ('127.0.0.1', 'localhost'):
+  return Response('Host not allowed',status_code=403)
+ if origin and origin != f'{request.url.scheme}://{request.url.netloc}':
   return Response('Origem não permitida',status_code=403)
  return await call_next(request)
 @app.get('/',response_class=HTMLResponse)

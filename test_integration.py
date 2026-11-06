@@ -1,5 +1,5 @@
-import requests
-u='http://127.0.0.1:8890'; old=requests.get(u+'/config').json()
+import os, requests
+u=os.environ.get('VOZLOCAL_TEST_URL','http://127.0.0.1:8888'); old=requests.get(u+'/config').json()
 try:
  s=old.copy();s['engine']='kokoro';s['kokoro']={'voice':'pm_alex','speed':1.1};r=requests.put(u+'/config',json=s);assert r.status_code==200,r.text
  assert requests.get(u+'/config').json()['kokoro']['voice']=='pm_alex'
