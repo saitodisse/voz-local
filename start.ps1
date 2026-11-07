@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$base = if ($env:VOZLOCAL_HOME) { $env:VOZLOCAL_HOME } else { Join-Path $env:USERPROFILE 'Apps\VozLocal' }
+$base = if ($env:VOZLOCAL_HOME) { $env:VOZLOCAL_HOME } else { Join-Path (Split-Path $PSScriptRoot -Parent) 'voz-local-data' }
 $python = Join-Path $base '.venv\Scripts\python.exe'
 $ahk = Join-Path $env:LOCALAPPDATA 'Programs\AutoHotkey\v2\AutoHotkey64.exe'
 if (-not (Test-Path -LiteralPath $ahk)) { $ahk = 'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe' }

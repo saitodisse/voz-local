@@ -1,7 +1,7 @@
 import io, os, json, re, time, threading, subprocess, asyncio
 from pathlib import Path
 from typing import Literal
-BASE=Path(os.environ.get('VOZLOCAL_HOME', str(Path.home() / 'Apps' / 'VozLocal')))
+BASE=Path(os.environ.get('VOZLOCAL_HOME', str(Path(__file__).resolve().parent.parent / 'voz-local-data')))
 os.environ['HF_HOME']=str(BASE/'cache')
 import numpy as np, soundfile as sf, torch, uvicorn
 from fastapi import FastAPI, HTTPException, Request

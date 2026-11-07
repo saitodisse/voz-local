@@ -1,4 +1,4 @@
-$base = if ($env:VOZLOCAL_HOME) { $env:VOZLOCAL_HOME } else { Join-Path $env:USERPROFILE 'Apps\VozLocal' }
+$base = if ($env:VOZLOCAL_HOME) { $env:VOZLOCAL_HOME } else { Join-Path (Split-Path $PSScriptRoot -Parent) 'voz-local-data' }
 $script = Join-Path $PSScriptRoot 'read_selection.ahk'
 Get-CimInstance Win32_Process -Filter "Name='AutoHotkey64.exe'" | Where-Object { $_.CommandLine -and $_.CommandLine.Contains($script) } | ForEach-Object { Stop-Process -Id $_.ProcessId -ErrorAction SilentlyContinue }
 $pidFile = Join-Path $base 'reader.pid'

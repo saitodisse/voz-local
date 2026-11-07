@@ -7,7 +7,7 @@ This repository contains only the Windows resident reader: FastAPI server, brows
 ## Architecture and execution
 
 - `server.py` binds to 127.0.0.1:8888. It validates the host and request origin, serializes generation and configuration writes with a lock, validates the configurable AHK shortcut, and atomically replaces the local JSON settings file.
-- `VOZLOCAL_HOME` selects the private data directory; by default it is `~/Apps/VozLocal`. The Kokoro environment is `.venv`; the isolated F5 environment is `.f5`. Models, user settings, reference recordings and generated audio are excluded from Git.
+- `VOZLOCAL_HOME` selects the private data directory; by default it is the `voz-local-data` folder beside the repository. The Kokoro environment is `.venv`; the isolated F5 environment is `.f5`. Models, user settings, reference recordings and generated audio are excluded from Git.
 - Kokoro uses Brazilian Portuguese `lang_code=p`, three official voices and CUDA. Its model loads on demand; F5 generation releases the Kokoro model first.
 - Edge TTS uses the community `edge-tts` client and sends selected text to Microsoft; disclose this in the interface and docs. It synthesizes online, then FFmpeg converts the response to WAV. Do not promise unlimited use or fixed latency. Keep its settings independent and backward compatible.
 - F5 uses the firstpixel pt-BR checkpoint with `F5TTS_Base`, original vocabulary, Cadu reference and the fixed reference transcript in `server.py`. It runs in a subprocess and reloads on each request. Preserve the 500-character limit unless generation is deliberately redesigned and verified.

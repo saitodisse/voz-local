@@ -20,11 +20,13 @@ cd voz-local
 **2. Choose the local data directory:**
 
 ```powershell
-$env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
+$env:VOZLOCAL_HOME = Join-Path (Split-Path (Get-Location).Path -Parent) 'voz-local-data'
 New-Item -ItemType Directory -Force -Path $env:VOZLOCAL_HOME | Out-Null
 ```
 
 The service uses this folder by default. To use another folder, set `VOZLOCAL_HOME` in every PowerShell session used to start the server. Never commit its contents.
+
+Existing installations previously used `~/Apps/VozLocal` by default. To keep using that folder, set `VOZLOCAL_HOME` to its full path before starting both scripts and the server. If moving data to the new folder, recreate virtual environments there instead of moving them.
 
 **3. Install the main environment:**
 
@@ -62,7 +64,7 @@ For the installed project, run `start.ps1` and `stop.ps1` from PowerShell to sta
 From the project folder, open a PowerShell window and run:
 
 ```powershell
-$env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
+$env:VOZLOCAL_HOME = Join-Path (Split-Path (Get-Location).Path -Parent) 'voz-local-data'
 & "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 server.py
 ```
 

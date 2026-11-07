@@ -22,11 +22,13 @@ cd voz-local
 **2. Escolha a pasta para modelos e ambientes:**
 
 ```powershell
-$env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
+$env:VOZLOCAL_HOME = Join-Path (Split-Path (Get-Location).Path -Parent) 'voz-local-data'
 New-Item -ItemType Directory -Force -Path $env:VOZLOCAL_HOME | Out-Null
 ```
 
 Essa é também a pasta padrão do servidor. Se escolher outra, defina a variável novamente em cada janela do PowerShell usada para iniciar o programa. Não envie o conteúdo dessa pasta ao GitHub.
+
+As versões anteriores usavam `~/Apps/VozLocal` por padrão. Para continuar usando essa pasta, defina `VOZLOCAL_HOME` com o caminho completo antes de executar os scripts e o servidor. Se mover os dados para a pasta nova, recrie os ambientes virtuais nela em vez de movê-los.
 
 **3. Instale o ambiente principal e confirme a GPU:**
 
@@ -64,7 +66,7 @@ Para iniciar e parar pelo projeto, execute `start.ps1` e `stop.ps1` no PowerShel
 Na pasta do projeto, abra uma janela do PowerShell e execute:
 
 ```powershell
-$env:VOZLOCAL_HOME = Join-Path $env:USERPROFILE 'Apps\VozLocal'
+$env:VOZLOCAL_HOME = Join-Path (Split-Path (Get-Location).Path -Parent) 'voz-local-data'
 & "$env:VOZLOCAL_HOME\.venv\Scripts\python.exe" -X utf8 server.py
 ```
 

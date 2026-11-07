@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5 - 2026-11-07
+
+- Place the default private data directory beside the repository and document how to retain the previous location.
+
 ## 0.1.4 - 2026-11-06
 
 - Allow recording or disabling the global reading shortcut from the settings page and apply changes in the running AutoHotkey listener.
